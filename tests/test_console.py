@@ -3,6 +3,7 @@ from console import HBNBCommand
 from io import StringIO
 import sys
 
+
 class TestHBNBCommandCreate(unittest.TestCase):
     def setUp(self):
         self.console = HBNBCommand()
@@ -25,10 +26,14 @@ class TestHBNBCommandCreate(unittest.TestCase):
         output = StringIO()
         sys.stdout = output
         self.console.onecmd('create InvalidClass')
-        self.assertEqual(output.getvalue().strip(), "** class doesn't exist **")
+        self.as sertEqual(
+                output.getvalue().strip(),
+                "** class doesn't exist **"
+                )
 
     def tearDown(self):
         sys.stdout = sys.__stdout__
+
 
 if __name__ == "__main__":
     unittest.main()
