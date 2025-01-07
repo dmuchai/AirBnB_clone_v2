@@ -26,7 +26,7 @@ class TestHBNBCommandCreate(unittest.TestCase):
         output = StringIO()
         sys.stdout = output
         self.console.onecmd('create InvalidClass')
-        self.as sertEqual(
+        self.assertEqual(
                 output.getvalue().strip(),
                 "** class doesn't exist **"
                 )
