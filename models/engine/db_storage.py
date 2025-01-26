@@ -14,6 +14,14 @@ from models.amenity import Amenity
 from models.review import Review
 
 
+classes = {
+    "State": State,
+    "City": City,
+    "User": User,
+    # Add other class mappings
+}
+
+
 class DBStorage:
     """This class manages storage of hbnb models in a SQL database"""
     __engine = None
@@ -37,21 +45,22 @@ class DBStorage:
             Base.metadata.drop_all(self.__engine)
 
     def all(self, cls=None):
-        """Returns a dict of models in storage"""
-        objects = dict()
-        all_classes = (User, State, City, Amenity, Place, Review)
-        if cls is None:
-            for class_type in all_classes:
-                query = self.__session.query(class_type)
-                for obj in query.all():
-                    obj_key = '{}.{}'.format(obj.__class__.__name__, obj.id)
-                    objects[obj_key] = obj
+        """Query all objects or objects of a specific class."""
+        if cls:
+            if type(cls) is str:  # Check if cls is a string and convert
+                cls = classes.get(cls)
+                if not cls:
+                    return {}
+                query = self.__session.query(cls).all()
+                return {f"{obj.__class__.__name__}.{obj.id}": obj
+                for obj in query}
         else:
-            query = self.__session.query(cls)
-            for obj in query.all():
-                obj_key = '{}.{}'.format(obj.__class__.__name__, obj.id)
-                objects[obj_key] = obj
-        return objects
+            objects = {}
+            for class_type in classes.values():
+                query = self.__session.query(class_type).all()
+                for obj in query:
+                    objects[f"{obj.__class__.__name__}.{obj.id}"] = obj
+            return objects
 
     def delete(self, obj=None):
         """Deletes an object from the storage database"""
