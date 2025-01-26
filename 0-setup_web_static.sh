@@ -1,87 +1,39 @@
 #!/usr/bin/env bash
-# script that sets up your web servers for the deployment of web_static
+# Script to set up web servers for the deployment of web_static
 
-if [[ "$(which nginx | grep -c nginx)" == '0' ]]; then
-    apt-get update
-    apt-get -y install nginx
+# Update and install Nginx if not already installed
+if ! dpkg -l | grep -q nginx; then
+    apt-get update -y
+    apt-get install nginx -y
 fi
 
-# Create config file
-SERVER_CONFIG="server {
-	listen 80 default_server;
-	listen [::]:80 default_server;
-
-	server_name _;
-	index index.html index.htm;
-	error_page 404 /404.html;
-	add_header X-Served-By \$hostname;
-
-	location / {
-		root /var/www/html/;
-		try_files \$uri \$uri/ =404;
-	}
-
-	location /hbnb_static/ {
-		alias /data/web_static/current/;
-		try_files \$uri \$uri/ =404;
-	}
-
-	if (\$request_filename ~ redirect_me) {
-		rewrite ^ https://sketchfab.com/bluepeno/models permanent;
-	}
-
-	location = /404.html {
-		root /var/www/error/;
-		internal;
-	}
-}"
-
-# Create a fake HTML file /data/web_static/releases/test/index.html (with simple content, to test your Nginx configuration)
-HOME_PAGE="<!DOCTYPE html>
-<html lang='en-US'>
-	<head>
-	</head>
-	<body>
-	ALX
-	<body>
-</html>
-"
-
-mkdir -p /var/www/html /var/www/error
-chmod -R 755 /var/www
-echo 'Hello World!' > /var/www/html/index.html
-echo -e "Ceci n\x27est pas une page" > /var/www/error/404.html
-
-# Create the folder /data/ if it doesn’t already exist
-# Create the folder /data/web_static/ if it doesn’t already exist
-# Create the folder /data/web_static/releases/ if it doesn’t already exist
-# Create the folder /data/web_static/releases/test/ if it doesn’t already exist
+# Create required directories
 mkdir -p /data/web_static/releases/test/
-
-# Create the folder /data/web_static/shared/ if it doesn’t already exist
 mkdir -p /data/web_static/shared/
 
-# Echo fake HTML here
-echo -e "$HOME_PAGE" > /data/web_static/releases/test/index.html
-[ -d /data/web_static/current ] && rm -rf /data/web_static/current
+# Create a fake HTML file for testing
+echo "<html>
+  <head>
+  </head>
+  <body>
+    ALX
+  </body>
+</html>" > /data/web_static/releases/test/index.html
 
-# Create a symbolic link /data/web_static/current linked to the /data/web_static/releases/test/
-# If the symbolic link already exists, it should be deleted and recreated every time the script is ran
-ln -sf /data/web_static/releases/test/ /data/web_static/current
-
-# Give ownership of the /data/ folder to the ubuntu user AND group (you can assume this user and group exist).
-# This should be recursive; everything inside should be created/owned by this user/group.
-chown -hR ubuntu:ubuntu /data
-
-# Update the Nginx configuration to serve the content of /data/web_static/current/ to hbnb_static
-# (ex: https://mydomainname.tech/hbnb_static). Don’t forget to restart Nginx after updating the configuration:
-# Use alias inside your Nginx configuration
-bash -c "echo -e '$SERVER_CONFIG' > /etc/nginx/sites-available/default"
-ln -sf '/etc/nginx/sites-available/default' '/etc/nginx/sites-enabled/default'
-
-if [ "$(pgrep -c nginx)" -le 0 ]; then
-	service nginx start
-else
-	service nginx restart
-    service nginx reload
+# Create symbolic link to /data/web_static/releases/test/
+if [ -L /data/web_static/current ]; then
+    rm -f /data/web_static/current
 fi
+ln -s /data/web_static/releases/test/ /data/web_static/current
+
+# Give ownership of /data/ to ubuntu user and group
+chown -R ubuntu:ubuntu /data/
+
+# Update Nginx configuration to serve content
+sed -i '/server_name _;/a \\n    location /hbnb_static/ {\n        alias /data/web_static/current/;\n    }' /etc/nginx/sites-available/default
+
+# Restart Nginx to apply changes
+service nginx restart
+
+# Always exit successfully
+exit 0
