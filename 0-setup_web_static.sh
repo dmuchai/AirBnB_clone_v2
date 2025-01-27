@@ -1,15 +1,18 @@
 #!/usr/bin/env bash
-# Script to set up web servers for the deployment of web_static
+# This script sets up the web servers for deploying web_static
 
-# Update and install Nginx if not already installed
+# Exit on error
+set -e
+
+# Install Nginx if not already installed
 if ! dpkg -l | grep -q nginx; then
-    apt-get update -y
-    apt-get install nginx -y
+    sudo apt-get update
+    sudo apt-get install -y nginx
 fi
 
-# Create required directories
-mkdir -p /data/web_static/releases/test/
-mkdir -p /data/web_static/shared/
+# Create necessary directories with the correct permissions
+sudo mkdir -p /data/web_static/releases/test /data/web_static/shared
+sudo chmod -R 755 /data
 
 # Create a fake HTML file for testing
 echo "<html>
@@ -18,22 +21,24 @@ echo "<html>
   <body>
     ALX
   </body>
-</html>" > /data/web_static/releases/test/index.html
+</html>" | sudo tee /data/web_static/releases/test/index.html > /dev/null
 
-# Create symbolic link to /data/web_static/releases/test/
-if [ -L /data/web_static/current ]; then
-    rm -f /data/web_static/current
-fi
-ln -s /data/web_static/releases/test/ /data/web_static/current
+# Create (or recreate) the symbolic link
+sudo ln -sf /data/web_static/releases/test /data/web_static/current
 
-# Give ownership of /data/ to ubuntu user and group
-chown -R ubuntu:ubuntu /data/
+# Set ownership of the /data directory to ubuntu user and group
+sudo chown -R ubuntu:ubuntu /data
 
-# Update Nginx configuration to serve content
-sed -i '/server_name _;/a \\n    location /hbnb_static/ {\n        alias /data/web_static/current/;\n    }' /etc/nginx/sites-available/default
+# Update Nginx configuration to serve /hbnb_static
+sudo sed -i "/server_name _;/a\\
+    location /hbnb_static/ {\n\
+        alias /data/web_static/current/;\n\
+        index index.html;\n\
+    }" /etc/nginx/sites-available/default
 
-# Restart Nginx to apply changes
-service nginx restart
+# Test and restart Nginx
+sudo nginx -t
+sudo service nginx restart
 
-# Always exit successfully
+# Exit successfully
 exit 0
