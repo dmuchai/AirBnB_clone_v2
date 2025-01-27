@@ -1,18 +1,17 @@
 #!/usr/bin/env bash
-# This script sets up the web servers for deploying web_static
+# Script to set up web servers for the deployment of web_static
 
 # Exit on error
 set -e
 
-# Install Nginx if not already installed
+# Update and install Nginx if not already installed
 if ! dpkg -l | grep -q nginx; then
-    sudo apt-get update
-    sudo apt-get install -y nginx
+    apt-get update -y
+    apt-get install nginx -y
 fi
 
-# Create necessary directories with the correct permissions
-sudo mkdir -p /data/web_static/releases/test /data/web_static/shared
-sudo chmod -R 755 /data
+# Create required directories with correct permissions
+mkdir -p /data/web_static/releases/test /data/web_static/shared
 
 # Create a fake HTML file for testing
 echo "<html>
@@ -21,24 +20,23 @@ echo "<html>
   <body>
     ALX
   </body>
-</html>" | sudo tee /data/web_static/releases/test/index.html > /dev/null
+</html>" > /data/web_static/releases/test/index.html
 
-# Create (or recreate) the symbolic link
-sudo ln -sf /data/web_static/releases/test /data/web_static/current
+# Remove existing symbolic link and create a new one
+rm -rf /data/web_static/current
+ln -s /data/web_static/releases/test /data/web_static/current
 
-# Set ownership of the /data directory to ubuntu user and group
-sudo chown -R ubuntu:ubuntu /data
+# Set ownership of /data/ to ubuntu user and group
+chown -R ubuntu:ubuntu /data/
 
-# Update Nginx configuration to serve /hbnb_static
-sudo sed -i "/server_name _;/a\\
-    location /hbnb_static/ {\n\
-        alias /data/web_static/current/;\n\
-        index index.html;\n\
-    }" /etc/nginx/sites-available/default
+# Update Nginx configuration to serve content
+if ! grep -q "location /hbnb_static/" /etc/nginx/sites-available/default; then
+    sed -i '/server_name _;/a \\n    location /hbnb_static/ {\n        alias /data/web_static/current/;\n        index index.html;\n    }' /etc/nginx/sites-available/default
+fi
 
-# Test and restart Nginx
-sudo nginx -t
-sudo service nginx restart
+# Test and restart Nginx to apply changes
+nginx -t
+service nginx restart
 
-# Exit successfully
+# Always exit successfully
 exit 0
