@@ -53,7 +53,7 @@ class DBStorage:
                     return {}
                 query = self.__session.query(cls).all()
                 return {f"{obj.__class__.__name__}.{obj.id}": obj
-                for obj in query}
+                        for obj in query}
         else:
             objects = {}
             for class_type in classes.values():
