@@ -28,9 +28,9 @@ class State(BaseModel, Base):
             """Returns the list of City objects linked to the current State
             Returns: cities in a state
             """
-            values_city = models.storage.all("City").values()
-            list_city = []
-            for city in values_city:
-                if city.state_id == self.id:
-                    list_city.append(city)
-            return list_city
+            from models.city import City
+
+            return [
+                city for city in models.storage.all(City).values()
+                if city.state_id == self.id
+            ]
